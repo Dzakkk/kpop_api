@@ -9,13 +9,10 @@ const path = require('path');
 
 const app = express();
 
-// Middleware untuk mem-parsing body dari POST request
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 mongoose.connect(process.env.MONGODB_URL, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
 }).then(() => {
     console.log('Connected to MongoDB');
 }).catch((error) => {
@@ -43,10 +40,25 @@ const memberSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
-const Group = mongoose.model('Group', groupSchema, 'kpop_groups');
-const Member = mongoose.model('Member', memberSchema, 'kpop_members');
+const Group = mongoose.models.Group || mongoose.model('Group', groupSchema, 'kpop_groups');
+const Member = mongoose.models.Member || mongoose.model('Member', memberSchema, 'kpop_members');
 
-const upload = multer({ dest: 'uploads/' });
+const uploadDir = '/tmp/uploads';
+if (!fs.existsSync(uploadDir)){
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+      cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+    }
+  });
+  
+  const upload = multer({ storage: storage });
+
 
 const uploadToGithub = async (filePath, githubPath) => {
     const fileContent = fs.readFileSync(filePath, { encoding: 'base64' });
@@ -90,7 +102,7 @@ app.post('/groups', upload.single('image'), async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Failed to upload', error });
     } finally {
-        fs.unlinkSync(filePath); // Remove the file after upload
+        fs.unlinkSync(filePath);
     }
 });
 
@@ -109,7 +121,7 @@ app.post('/members', upload.single('image'), async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Failed to upload', error });
     } finally {
-        fs.unlinkSync(filePath); // Remove the file after upload
+        fs.unlinkSync(filePath);
     }
 });
 
