@@ -12,4 +12,6 @@ cuz i input one by one :(
 
 if you have fastest way to input the data please tell me...
 
+(i already use wrapping but the data not updated yet) 
+
 adios 
